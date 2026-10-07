@@ -1,0 +1,14 @@
+exposures:
+  - name: state_economic_trajectory
+    label: State Economic Trajectory
+    type: dashboard
+    maturity: low
+    url: http://localhost:3000/dashboard/2-executive-dashboard
+    description: Dashboard containing visualizations of gross state product, consumer price index, and unemployment rate, filtered by state
+
+    depends_on:
+      - ref('fct_state_economic_indicators')
+
+    owner:
+      name: Abigail Ezell
+      email: maezell@gmail.com

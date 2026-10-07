@@ -1,0 +1,51 @@
+name: "fed_data_pipeline"
+version: "1.0.0"
+profile: "fed_data_pipeline"
+model-paths:
+  - models
+analysis-paths:
+  - analyses
+test-paths:
+  - tests
+seed-paths:
+  - seeds
+macro-paths:
+  - macros
+snapshot-paths:
+  - snapshots
+asset-paths:
+  - assets
+clean-targets:
+  - target
+  - dbt_packages.nosync
+on-run-start:
+  - CREATE SCHEMA IF NOT EXISTS lake.{{ target.schema }}
+  - CREATE TABLE IF NOT EXISTS lake.{{ target.schema }}.audit_log ( model_name STRING, run_timestamp TIMESTAMP )
+
+vars:
+  us_state_abbreviations: [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'GA', 
+    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 
+    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 
+    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 
+    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+  ]
+
+# dbt uses DuckDB as the execution engine but all persistent relations are created
+# in the attached PostgreSQL-cataloged DuckLake.
+models:
+  fed_data_pipeline:
+    +post-hook:
+      - INSERT INTO lake.{{ target.schema }}.audit_log VALUES ('{{ this }}', CURRENT_TIMESTAMP)
+    src:
+      +materialized: ephemeral
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
+data_tests:
+  +store_failures: true
+  +schema: _test_failures
+on-run-end:
+  - "FORCE CHECKPOINT;"
+  - "{{ maintain_ducklake() }}"

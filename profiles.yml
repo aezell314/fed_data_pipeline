@@ -1,0 +1,38 @@
+fed_data_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # dbt uses DuckDB as an in-process coordinator only; the lake itself is the attached
+      # PostgreSQL-cataloged DuckLake and its Parquet data lives in RustFS.
+      path: ":memory:"
+      database: lake
+      schema: raw
+      threads: 1
+      extensions:
+        - ducklake
+        - postgres
+        - httpfs
+      secrets:
+        - type: s3
+          provider: config
+          key_id: "{{ env_var('S3_ACCESS_KEY') }}"
+          secret: "{{ env_var('S3_SECRET_KEY') }}"
+          endpoint: "localhost:9000"
+          region: "{{ env_var('S3_REGION', 'us-east-1') }}"
+          use_ssl: false
+          url_style: path
+          scope: "s3://{{ env_var('S3_BUCKET', 'feddatapipeline') }}/"
+      attach:
+        - path: >-
+            ducklake:postgres:dbname={{ env_var('PGDATABASE', 'ducklake_catalog') }}
+            host={{ env_var('PGHOST', 'localhost') }}
+            port={{ env_var('PGPORT', '5432') }}
+            user={{ env_var('PGUSER', 'ducklake') }}
+            password={{ env_var('PGPASSWORD', 'ducklake') }}
+          alias: lake
+          is_ducklake: true
+          options:
+            DATA_PATH: "{{ env_var('DATA_PATH', 's3://feddatapipeline/raw') }}"
+            OVERRIDE_DATA_PATH: true
+            DATA_INLINING_ROW_LIMIT: 0

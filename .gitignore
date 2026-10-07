@@ -1,0 +1,33 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+
+# dbt-generated files
+target/
+dbt_packages/
+logs/
+
+# OS / editor junk
+.DS_Store
+.idea/
+
+# dbt user config
+.user.yml
+
+# All local data
+data/
+dbt_internal_packages/
+
+# Metabase init script
+metabase/ducklake-init.sql.template

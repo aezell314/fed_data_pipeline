@@ -1,0 +1,255 @@
+version: 2
+
+models:
+  - name: fct_personal_income
+    description: "Price index data, cleansed."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - state_code
+              - economic_year
+      - minimum_row_count:
+          arguments:
+            min_row_count: 4900
+          config:
+            severity: warn
+      - consistent_observation_time
+    columns:
+      - name: economic_year
+        data_tests:
+          - not_null
+      - name: state_code
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: "{{ var('us_state_abbreviations') }}"
+      - name: series_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_series_metadata')
+                field: series_id
+              config:
+                severity: warn
+      - name: pcpi_value
+        data_tests:
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+                arguments:
+                  quantile: .99
+                  min_value: 120
+                  max_value: 120000
+                config:
+                  severity: warn
+          - dbt_expectations.expect_column_max_to_be_between:
+                arguments:
+                  max_value: 125000
+                config:
+                  severity: warn
+          - positive_values
+
+  - name: fct_state_product
+    description: "State gross product data, cleansed."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - state_code
+              - economic_year
+      - consistent_observation_time
+      - minimum_row_count:
+          arguments:
+            min_row_count: 1400
+          config:
+            severity: warn
+    columns:
+      - name: economic_year
+        data_tests:
+          - not_null
+      - name: state_code
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: "{{ var('us_state_abbreviations') }}"
+      - name: series_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_series_metadata')
+                field: series_id
+              config:
+                severity: warn
+      - name: gsp_value
+        data_tests:
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+              arguments:
+                quantile: .99
+                min_value: 21000
+                max_value: 3400000
+              config:
+                severity: warn
+          - dbt_expectations.expect_column_max_to_be_between:
+              arguments:
+                max_value: 4000000
+              config:
+                severity: warn
+          - positive_values
+
+  - name: fct_unemployment
+    description: "State unemployment data, cleansed."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - state_code
+              - economic_year
+      - consistent_observation_time
+      - minimum_row_count:
+          arguments:
+            min_row_count: 2500
+          config:
+            severity: warn
+    columns:
+      - name: economic_year
+        data_tests:
+          - not_null
+      - name: state_code
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: "{{ var('us_state_abbreviations') }}"
+      - name: series_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_series_metadata')
+                field: series_id
+              config:
+                severity: warn
+      - name: unemployment_rate
+        description: '{{ doc("fct_unemployment__unemployment_rate") }}'
+        data_tests:
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+              arguments:
+                quantile: .99
+                min_value: 1
+                max_value: 18
+              config:
+                severity: warn
+          - dbt_expectations.expect_column_max_to_be_between:
+              arguments:
+                max_value: 33
+              config:
+                severity: warn
+          - positive_values
+  
+  - name: dim_series_metadata
+    description: "Information about each economic data series"
+    data_tests:
+      - minimum_row_count:
+          arguments:
+            min_row_count: 150
+          config:
+            severity: error
+    columns:
+      - name: series_id
+        data_tests:
+          - unique
+          - not_null
+      - name: title
+        data_tests:
+          - not_null
+      - name: frequency
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Annual', 'Monthly']
+      - name: units
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Millions of Chained 2017 Dollars', 'Percent', 'Dollars']
+      - name: seasonal_adjustment
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Not Seasonally Adjusted', 'Seasonally Adjusted']
+      - name: popularity
+        data_tests:
+          - positive_values
+      - name: state_code
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: "{{ var('us_state_abbreviations') }}"
+
+  - name: fct_state_economic_indicators
+    description: "Combines state-level annual CPI, GSP, and Unemployment values into a single, wide matrix table"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - state_code
+              - economic_year
+      - minimum_row_count:
+          arguments:
+            min_row_count: 4900
+          config:
+            severity: error
+    columns:
+      - name: state_code
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: "{{ var('us_state_abbreviations') }}"
+      - name: economic_year
+        data_tests:
+          - not_null
+      - name: unemployment_rate
+        data_tests:
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+              arguments:
+                quantile: .99
+                min_value: 1
+                max_value: 18
+              config:
+                severity: warn
+          - dbt_expectations.expect_column_max_to_be_between:
+              arguments:
+                max_value: 33
+              config:
+                severity: warn
+          - positive_values
+      - name: gsp_value
+        data_tests:
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+              arguments:
+                quantile: .99
+                min_value: 21000
+                max_value: 3400000
+              config:
+                severity: warn
+          - dbt_expectations.expect_column_max_to_be_between:
+              arguments:
+                max_value: 4000000
+              config:
+                severity: warn
+          - positive_values
+      - name: pcpi_value
+        data_tests:
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+                arguments:
+                  quantile: .99
+                  min_value: 120
+                  max_value: 120000
+                config:
+                  severity: warn
+          - dbt_expectations.expect_column_max_to_be_between:
+                arguments:
+                  max_value: 125000
+                config:
+                  severity: warn
+          - positive_values

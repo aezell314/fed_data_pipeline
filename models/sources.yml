@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: fed_data_pipeline
+    description: "Raw economic data fetched from the live FRED HTTP API and stored in DuckLake."
+    schema: raw
+    tables:
+      - name: personal_income
+        identifier: PCPI
+        description: "Per Capita Personal Income in a given state"
+      - name: state_product
+        identifier: RGSP
+        description: "Real Gross State Product; represents inflation-adjusted economic output for individual U.S. states"
+      - name: unemployment
+        identifier: UR
+        description: "State-level Unemployment Rate time series data"
+      - name: series_metadata
+        identifier: series_metadata
+        description: "Detailed information about each economic data series"
